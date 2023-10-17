@@ -10,6 +10,12 @@ namespace FactoryAPI.DbContexts
         }
 
         public DbSet<Item> Items { get; set; }
-    }
 
+        protected override void OnModelCreating(ModelBuilder modelBuilder)
+        {
+            modelBuilder.Entity<Item>()
+                .Property(b => b.Price)
+                .HasColumnType("decimal(18, 2)");
+        }
+    }
 }

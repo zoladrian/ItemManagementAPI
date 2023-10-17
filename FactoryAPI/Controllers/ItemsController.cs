@@ -1,76 +1,140 @@
 ﻿using FactoryAPI.DbContexts;
+using FactoryAPI.Helpers;
 using FactoryAPI.Models;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using System;
 
 namespace FactoryAPI.Controllers
 {
+    /// <summary>
+    /// ItemsController manages CRUD operations for Item objects.
+    /// </summary>
     [Route("api/[controller]")]
     [ApiController]
     public class ItemsController : ControllerBase
     {
         private readonly ItemDbContext _context;
+        private readonly ErrorHandler _errorHandler;
 
-        public ItemsController(ItemDbContext context)
+        /// <summary>
+        /// Initializes a new instance of the <see cref="ItemsController"/> class.
+        /// </summary>
+        /// <param name="context">The database context.</param>
+        /// <param name="errorHandler">The error handler.</param>
+        public ItemsController(ItemDbContext context, ErrorHandler errorHandler)
         {
             _context = context;
+            _errorHandler = errorHandler;
         }
 
-        // Create a new item
+        /// <summary>
+        /// Creates a new Item.
+        /// </summary>
+        /// <param name="item">The item to create.</param>
+        /// <returns>The created item along with its URI.</returns>
         [HttpPost]
         public async Task<IActionResult> CreateItem(Item item)
         {
-            _context.Items.Add(item);
-            await _context.SaveChangesAsync();
-            return CreatedAtAction(nameof(GetItemById), new { id = item.ID }, item);
+            try
+            {
+                _context.Items.Add(item);
+                await _context.SaveChangesAsync();
+                return CreatedAtAction(nameof(GetItemById), new { id = item.ID }, item);
+            }
+            catch (Exception ex)
+            {
+                return _errorHandler.HandleException(ex);
+            }
         }
 
-        // Retrieve a single item by ID
+        /// <summary>
+        /// Retrieves an Item by its ID.
+        /// </summary>
+        /// <param name="id">The ID of the item.</param>
+        /// <returns>The item if found; otherwise, NotFound.</returns>
         [HttpGet("{id}")]
         public async Task<IActionResult> GetItemById(int id)
         {
-            var item = await _context.Items.FindAsync(id);
-            if (item == null)
+            try
             {
-                return NotFound();
+                var item = await _context.Items.FindAsync(id);
+                if (item == null)
+                {
+                    return NotFound();
+                }
+                return Ok(item);
             }
-            return Ok(item);
+            catch (Exception ex)
+            {
+                return _errorHandler.HandleException(ex);
+            }
         }
 
-        // Retrieve all items
+        /// <summary>
+        /// Retrieves all Items.
+        /// </summary>
+        /// <returns>List of all items.</returns>
         [HttpGet]
         public async Task<IActionResult> GetAllItems()
         {
-            return Ok(await _context.Items.ToListAsync());
+            try
+            {
+                return Ok(await _context.Items.ToListAsync());
+            }
+            catch (Exception ex)
+            {
+                return _errorHandler.HandleException(ex);
+            }
         }
 
-        // Update an existing item
+        /// <summary>
+        /// Updates an existing Item.
+        /// </summary>
+        /// <param name="id">The ID of the item to update.</param>
+        /// <param name="item">The updated item.</param>
+        /// <returns>NoContent if successful; otherwise, BadRequest.</returns>
         [HttpPut("{id}")]
         public async Task<IActionResult> UpdateItem(int id, Item item)
         {
-            if (id != item.ID)
+            try
             {
-                return BadRequest();
+                item.ID = id;
+                _context.Entry(item).State = EntityState.Modified;
+                await _context.SaveChangesAsync();
+                return NoContent();
             }
-
-            _context.Entry(item).State = EntityState.Modified;
-            await _context.SaveChangesAsync();
-            return NoContent();
+            catch (Exception ex)
+            {
+                return _errorHandler.HandleException(ex);
+            }
         }
 
-        // Delete an item
+
+        /// <summary>
+        /// Deletes an Item by its ID.
+        /// </summary>
+        /// <param name="id">The ID of the item to delete.</param>
+        /// <returns>NoContent if successful; otherwise, NotFound.</returns>
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteItem(int id)
         {
-            var item = await _context.Items.FindAsync(id);
-            if (item == null)
+            try
             {
-                return NotFound();
-            }
+                var item = await _context.Items.FindAsync(id);
+                if (item == null)
+                {
+                    return NotFound();
+                }
 
-            _context.Items.Remove(item);
-            await _context.SaveChangesAsync();
-            return NoContent();
+                _context.Items.Remove(item);
+                await _context.SaveChangesAsync();
+                return NoContent();
+            }
+            catch (Exception ex)
+            {
+                return _errorHandler.HandleException(ex);
+            }
         }
     }
 }
